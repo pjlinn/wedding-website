@@ -1,6 +1,7 @@
 'use strict';
 
 import spUtils from './Utils';
+import spDetector from './detector';
 
 /*
   global TimelineMax
@@ -168,7 +169,39 @@ spUtils.$document.ready(() => {
     /*-----------------------------------------------
     |   End of Resize Fancy Dropdown
     -----------------------------------------------*/
-    $(Selector.FANCYNAV_LINK).on('click tap', (e) => {
+    const clickEvent = spDetector.isIOS ? 'click tap' : 'click';
+    $(Selector.FANCYNAV_LINK).on(clickEvent, (e) => {
+      // Fancyscroll in Fancynav
+      const $this = $(e.target);
+      function getAttributes($node) {
+        const attrs = [];
+        const attrsObj = {};
+        $.each($node[0].attributes, (index, attribute) => attrs.push(attribute.name));
+        $.each($node[0].attributes, (i, a) => {
+          attrsObj[a.name] = a.value;
+        });
+        return { attrs, attrsObj };
+      }
+
+      const fancyscroll = (target, elem) => {
+        $('html, body').animate({
+          scrollTop: (target.offset().top - (elem.data('offset') || 0)),
+        }, 400, 'swing', () => {
+          const hash = elem.attr('href');
+          window.history.pushState ?
+            window.history.pushState(null, null, hash) : window.location.hash = hash;
+        });
+        animateMenu();
+      };
+
+      if ($this.hasClass('fancynav-link') && getAttributes($this).attrs.includes('data-fancyscroll')) {
+        fancyscroll($(`#${getAttributes($this).attrsObj.href.split('#')[1]}`), $this);
+        return;
+      } else if ($this.parent().hasClass('fancynav-link') && getAttributes($this.parent()).attrs.includes('data-fancyscroll')) {
+        fancyscroll($(`#${getAttributes($this.parent()).attrsObj.href.split('#')[1]}`), $this.parent());
+        return;
+      }
+
       // Keeping the menu open on ctrl/cmd + click
       if (e.ctrlKey || e.metaKey) return;
 
