@@ -490,8 +490,45 @@ spUtils.$document.ready(function () {
     -----------------------------------------------*/
 
 
-    $(Selector.FANCYNAV_LINK).on('click tap', function (e) {
-      // Keeping the menu open on ctrl/cmd + click
+    var clickEvent = spDetector.isIOS ? 'click tap' : 'click';
+    $(Selector.FANCYNAV_LINK).on(clickEvent, function (e) {
+      // Fancyscroll in Fancynav
+      var $this = $(e.target);
+
+      function getAttributes($node) {
+        var attrs = [];
+        var attrsObj = {};
+        $.each($node[0].attributes, function (index, attribute) {
+          return attrs.push(attribute.name);
+        });
+        $.each($node[0].attributes, function (i, a) {
+          attrsObj[a.name] = a.value;
+        });
+        return {
+          attrs: attrs,
+          attrsObj: attrsObj
+        };
+      }
+
+      var fancyscroll = function fancyscroll(target, elem) {
+        $('html, body').animate({
+          scrollTop: target.offset().top - (elem.data('offset') || 0)
+        }, 400, 'swing', function () {
+          var hash = elem.attr('href');
+          window.history.pushState ? window.history.pushState(null, null, hash) : window.location.hash = hash;
+        });
+        animateMenu();
+      };
+
+      if ($this.hasClass('fancynav-link') && getAttributes($this).attrs.includes('data-fancyscroll')) {
+        fancyscroll($("#" + getAttributes($this).attrsObj.href.split('#')[1]), $this);
+        return;
+      } else if ($this.parent().hasClass('fancynav-link') && getAttributes($this.parent()).attrs.includes('data-fancyscroll')) {
+        fancyscroll($("#" + getAttributes($this.parent()).attrsObj.href.split('#')[1]), $this.parent());
+        return;
+      } // Keeping the menu open on ctrl/cmd + click
+
+
       if (e.ctrlKey || e.metaKey) return;
       var $fancyLink = $(e.currentTarget);
       var fancyDropdownMenuTimeline = new TimelineMax().pause();
@@ -585,7 +622,33 @@ spUtils.$document.ready(function () {
       spUtils.$window.on('resize', changeFancyNavBG);
     }
   }
-});
+}); // /*-----------------------------------------------
+// |   On page scroll for #id targets
+// -----------------------------------------------*/
+// spUtils.$document.ready(($) => {
+//   $('a[data-fancyscroll]').click(function scrollTo(e) {
+//     // const $this = $(e.currentTarget);
+//     e.preventDefault();
+//     const $this = $(this);
+//     if (spUtils.location.pathname.replace(/^\//, '')
+// === this.pathname.replace(/^\//, '') && spUtils.location.hostname === this.hostname) {
+//       let target = $(this.hash);
+//       target = target.length ? target : $(`[name=${this.hash.slice(1)}]`);
+//       if (target.length) {
+//         $('html,body').animate({
+//           scrollTop: (target.offset().top - ($this.data('offset') || 0)),
+//         }, 400, 'swing', () => {
+//           const hash = $this.attr('href');
+//           window.history.pushState ?
+//             window.history.pushState(null, null, hash) : window.location.hash = hash;
+//         });
+//         return false;
+//       }
+//     }
+//     return true;
+//   });
+// });
+
 /*-----------------------------------------------
 |   On page scroll for #id targets
 -----------------------------------------------*/
@@ -593,15 +656,15 @@ spUtils.$document.ready(function () {
 spUtils.$document.ready(function ($) {
   $('a[data-fancyscroll]').click(function scrollTo(e) {
     // const $this = $(e.currentTarget);
-    e.preventDefault();
     var $this = $(this);
 
-    if (spUtils.location.pathname.replace(/^\//, '') === this.pathname.replace(/^\//, '') && spUtils.location.hostname === this.hostname) {
+    if (spUtils.location.pathname === $this[0].pathname && spUtils.location.pathname.replace(/^\//, '') === this.pathname.replace(/^\//, '') && spUtils.location.hostname === this.hostname) {
+      e.preventDefault();
       var target = $(this.hash);
       target = target.length ? target : $("[name=" + this.hash.slice(1) + "]");
 
       if (target.length) {
-        $('html,body').animate({
+        $('html, body').animate({
           scrollTop: target.offset().top - ($this.data('offset') || 0)
         }, 400, 'swing', function () {
           var hash = $this.attr('href');
@@ -613,6 +676,16 @@ spUtils.$document.ready(function ($) {
 
     return true;
   });
+  var hash = window.location.hash;
+
+  if (hash && document.getElementById(hash.slice(1))) {
+    var $this = $(hash);
+    $('html, body').animate({
+      scrollTop: $this.offset().top - $("a[href='" + hash + "']").data('offset')
+    }, 400, 'swing', function () {
+      window.history.pushState ? window.history.pushState(null, null, hash) : window.location.hash = hash;
+    });
+  }
 });
 /*-----------------------------------------------
 |   Tabs
